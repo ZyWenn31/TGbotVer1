@@ -78,6 +78,15 @@ int main()
     backbtns.push_back(backbtn);
     backKeyboard->inlineKeyboard.push_back(backbtns);
 
+    // клавиатура message for all users
+    InlineKeyboardMarkup::Ptr MessageBTNSKeyboard(new InlineKeyboardMarkup);
+    vector<InlineKeyboardButton::Ptr> MessBTNS;
+    InlineKeyboardButton::Ptr Mesbtn(new InlineKeyboardButton);
+    Mesbtn->text = u8"Отправить сообщение";
+    Mesbtn->callbackData = u8"Сообщение";
+    MessBTNS.push_back(Mesbtn);
+    MessageBTNSKeyboard->inlineKeyboard.push_back(MessBTNS);
+
     //YesNo Клавиатура
     InlineKeyboardMarkup::Ptr YesKey(new InlineKeyboardMarkup);
     vector<InlineKeyboardButton::Ptr> Keyes;
@@ -574,7 +583,41 @@ int main()
             }
         });
 
+    // рассылка заданного сообщения (Не работает)
+    bot.getEvents().onCallbackQuery([&bot, &outKey, &YesKey, &AdminMenuKeyboard, &MessageBTNSKeyboard](CallbackQuery::Ptr query)
+        {
+            if (query->data == u8"")
+            {
+                bot.getApi().sendMessage(query->message->chat->id, u8"Для того что бы получить информацию о пользователе, пропишите команду /message и введите текст рассылки  (!🔴 ВНИМАНИЕ: ДАННУЮ КОМАНДУ СЛЕДУЕТ ПРОПИСЫВАТЬ ЛИШЬ 1 РАЗ, ПРИ ДАЛЬНЕЙШЕМ ИСПОЛЬЗОВАНИИ СЛЕДУЕТ СРАЗУ НАПИСАТЬ СООБЩЕНИЕ 🔴!) : " + SearchUsersToAdmin());
+                bot.getEvents().onCommand("message", [&bot, &MessageBTNSKeyboard](Message::Ptr message)
+                    {
 
+                            bot.getApi().sendMessage(message->chat->id, u8"Я жду сообщение");
+                            bot.getEvents().onNonCommandMessage([&bot, &MessageBTNSKeyboard](Message::Ptr message)
+                                {
+                                        bot.getApi().sendMessage(message->chat->id, u8"Вы ввели сообщение:\n" + message->text + u8"\n если необходимо исправить - отправьте исправленное сообщение, если исправлений не требуется - нажмите кнопку под сообщением", false, 0, MessageBTNSKeyboard);
+                                        cout << endl << " Admin User " << message->chat->username << "  send message for all users " << endl;
+                                });
+                    });
+            }
+        });
+
+
+    bot.getEvents().onCallbackQuery([&bot, &Generalkeyboard, &outKey, &MessageBTNSKeyboard](CallbackQuery::Ptr query)
+        {
+            if (query->data == u8"Сообщение")
+            {
+                try {
+                    for (const auto& userID : GoMessegeToUsers()) {
+                        bot.getApi().sendMessage(userID, MessageToAllUsers(query->message->text));
+                    }
+                }
+                catch (const TgBot::TgException& ex) {
+                    std::cerr << "Ошибка при отправке сообщения: " << ex.what() << std::endl;
+                    return 1;
+                }
+            }
+        });
 
 
     bot.getEvents().onCallbackQuery([&bot, &Generalkeyboard, &outKey](CallbackQuery::Ptr query)
