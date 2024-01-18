@@ -29,9 +29,11 @@ using namespace TgBot;
 SQLite::Database Data("UserAndStatus.db", SQLite::OPEN_CREATE | SQLite::OPEN_READWRITE);
 void createtable()
 {
-    Data.exec("CREATE TABLE IF NOT EXISTS usstat (ID INTEGER PRIMARY KEY, Username TEXT, Status TEXT, UserID INTEGER)");
+    Data.exec("CREATE TABLE IF NOT EXISTS usstat (ID INTEGER PRIMARY KEY, Username TEXT, Status TEXT, UserID INTEGER, Time TEXT, LastRestart TEXT, SearchUserBool INTEGER)");
     Data.exec("CREATE TABLE IF NOT EXISTS funct (Time INTEGER, Password INTEGER, joke INTEGER, anwser INTEGER)");
 }
+
+
 
 
 // обнуление кнопок
@@ -191,10 +193,22 @@ string SearchUser(string Username)
     return result;
 }
 
+string SearchUsersToAdmin()
+{
+   string User;
+    SQLite::Statement query(Data, "SELECT Username FROM usstat");
+    while (query.executeStep())
+    {
+        string user = query.getColumn(0);
+        User = User + "\n" + user;
+    }
+    return User;
+}
+
 bool TakeQuestion(string n)
 {
     std::cout << n;
-    for (auto f : n)
+    for (const auto& f : n)
     {
         if (f == '?')
         {
@@ -322,4 +336,90 @@ string generateRandomParol(std::size_t length) {
         result += chars[generator(randomSeed)];
     }
     return result;
+}
+
+void UpdateLastRestartBD(string username)
+{
+    string p = "'";
+    SQLite::Statement update(Data, ("UPDATE usstat SET LastRestart = ? WHERE Username =") + p + username + p);
+    update.bind(1, get_time_as_str());
+    update.exec();
+}
+
+bool SearchInfToUserBool(string n)
+{
+    int count = 0;
+    for (const auto& f : n)
+    {
+        if (f == '*')
+        {
+            count++;
+        }
+        if (count == 2)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+string InformationUserForBD(string Username)
+{
+    string User;
+    string p = "'";
+    SQLite::Statement query(Data, ("SELECT * FROM usstat WHERE Username =" + p + Username + p));
+    while (query.executeStep())
+    {
+        string userID = query.getColumn(0);
+        string userName = query.getColumn(1);
+        string userStatus = query.getColumn(2);
+        string userMessID = query.getColumn(3);
+        string userTime = query.getColumn(4);
+        string userLastRestart = query.getColumn(5);
+      //  User = userID + "\t|\t" + userName + "\t|\t" + userStatus + "\t|\t" + userMessID + "\t|\t" + userTime + "\t|\t" + userLastRestart;
+        User = "ID: " + userID + "\n" +
+            "Username: " + userName + "\n" +
+            "Status: " + userStatus + "\n" +
+            "TG ID:  " + userMessID + "\n" +
+            "Registration: " + userTime + "\n" +
+            "Last restart: " + userLastRestart;
+    }
+    return User;
+}
+
+// проверка на ввод никнейма пользователем
+bool StatusInputUsername(string Username)
+{
+    int statuu;
+    string p = "'";
+    SQLite::Statement query(Data, ("SELECT SearchUserBool FROM usstat WHERE Username =" + p + Username + p));
+    while (query.executeStep())
+    {
+        int statu = query.getColumn(0);
+        statuu = statu;
+    }
+    if (statuu == 1)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void UpdateStatusInputUsernamePlus(string username)
+{
+    string p = "'";
+    SQLite::Statement update(Data, ("UPDATE usstat SET SearchUserBool = ? WHERE Username =") + p + username + p);
+    update.bind(1, 1);
+    update.exec();
+}
+
+void UpdateStatusInputUsernameMinus(string username)
+{
+    string p = "'";
+    SQLite::Statement update(Data, ("UPDATE usstat SET SearchUserBool = ? WHERE Username =") + p + username + p);
+    update.bind(1, 0);
+    update.exec();
 }

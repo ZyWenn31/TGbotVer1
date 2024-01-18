@@ -6,10 +6,17 @@
 using namespace std;
 using namespace TgBot;
 
-vector<string>bot_commands = {"start"};
+vector<string>bot_commands = {"start", "leesten", "SS"};
 
 
-string MessageText = "Hello, everyone";
+
+
+string MessageToAllUsers(string message)
+{
+    string MessageText;
+    MessageText = message;
+    return MessageText;
+}
 
 vector<string> GoMessegeToUsers()
 {
@@ -30,10 +37,13 @@ bool HelloToUser(string n, string user, string ID)
 {
     if (n == "User:")
     {
-        SQLite::Statement insert(Data, "INSERT INTO usstat (Username, Status, UserID) VALUES (?, ?, ?)");
+        SQLite::Statement insert(Data, "INSERT INTO usstat (Username, Status, UserID, Time, LastRestart, SearchUserBool) VALUES (?, ?, ?, ?, ?, ?)");
         insert.bind(1, user);
         insert.bind(2, "Member");
         insert.bind(3, ID);
+        insert.bind(4, get_time_as_str());
+        insert.bind(5, "0");
+        insert.bind(6, 0);
         insert.exec();
         return true;
     }
@@ -78,6 +88,29 @@ int main()
     Keout.push_back(outBTN);
     YesKey->inlineKeyboard.push_back(Keyes);
     YesKey->inlineKeyboard.push_back({ outBTN });
+
+    // chooose up funct клавиатура
+    InlineKeyboardMarkup::Ptr UpFunctKeyboard(new InlineKeyboardMarkup);
+    vector<InlineKeyboardButton::Ptr> Upbtns;
+    InlineKeyboardButton::Ptr UpTimeFunct(new InlineKeyboardButton), UpPasswordFunct(new InlineKeyboardButton), UpJokeFunct(new InlineKeyboardButton), UpQuestionFunct(new InlineKeyboardButton);
+    UpTimeFunct->text = u8"Активировать 'время'";
+    UpTimeFunct->callbackData = u8"АктВремя";
+    UpPasswordFunct->text = u8"Активировать 'Пароль'";
+    UpPasswordFunct->callbackData = u8"АктПароль";
+    UpJokeFunct->text = u8"Активировать 'Шутка'";
+    UpJokeFunct->callbackData = u8"АктШутка";
+    UpQuestionFunct->text = u8"Активировать 'Вопрос'";
+    UpQuestionFunct->callbackData = u8"АктВопрос";
+    backbtns.push_back(backbtn);
+    Upbtns.push_back(UpTimeFunct);
+    Upbtns.push_back(UpPasswordFunct);
+    Upbtns.push_back(UpJokeFunct);
+    Upbtns.push_back(UpQuestionFunct);
+    UpFunctKeyboard->inlineKeyboard.push_back({ UpTimeFunct });
+    UpFunctKeyboard->inlineKeyboard.push_back({ UpPasswordFunct });
+    UpFunctKeyboard->inlineKeyboard.push_back({ UpJokeFunct });
+    UpFunctKeyboard->inlineKeyboard.push_back({ UpQuestionFunct });
+    UpFunctKeyboard->inlineKeyboard.push_back({ backbtn });
 
     // chooose delete funct клавиатура
     InlineKeyboardMarkup::Ptr OfFunctKeyboard(new InlineKeyboardMarkup);
@@ -234,14 +267,16 @@ int main()
                 cout << "New registed user: " << message->chat->username << " ID: " << message->chat->id << " Time: " << get_time_as_str() << endl;
             }
             else {
+                UpdateLastRestartBD(message->chat->username);
+                UpdateStatusInputUsernameMinus(message->chat->username);
                 bot.getApi().sendMessage(message->chat->id, u8"Вы успешно авторизованы");
                 cout << "autarization user: " << message->chat->username << " ID: " << message->chat->id << " Time: " << get_time_as_str() << endl;
             }
             if (AdminOrNo(message->chat->username)) {
-                bot.getApi().sendMessage(message->chat->id, u8"Добро пожаловать в бота <название бота>, бот умеет:\n - Показывать время\n - генерировать шутки на различные темы\n - давать односложный ответ на вопрос\n - генерировать пароли различной длинны\n Бот предназначен для ежедневного использования, по всем вопросам писать в поддержку : @Пример.\n Приятного использования!", false, 0, GeneralAdminkeyboard);
+                bot.getApi().sendMessage(message->chat->id, u8"Добро пожаловать в бота <название бота>, бот умеет:\n - Показывать время\n - Генерировать шутки на различные темы\n - Давать односложный ответ на вопрос\n - Генерировать пароли различной длинны\n Бот предназначен для ежедневного использования, по всем вопросам писать в поддержку : @Пример.\n Приятного использования!", false, 0, GeneralAdminkeyboard);
             }
             else {
-                bot.getApi().sendMessage(message->chat->id, u8"Добро пожаловать в бота <название бота>, бот умеет:\n - Показывать время\n - генерировать шутки на различные темы\n - давать односложный ответ на вопрос\n - генерировать пароли различной длинны\n Бот предназначен для ежедневного использования, по всем вопросам писать в поддержку : @Пример.\n Приятного использования!", false, 0, Generalkeyboard);
+                bot.getApi().sendMessage(message->chat->id, u8"Добро пожаловать в бота <название бота>, бот умеет:\n - Показывать время\n - Генерировать шутки на различные темы\n - Давать односложный ответ на вопрос\n - Генерировать пароли различной длинны\n Бот предназначен для ежедневного использования, по всем вопросам писать в поддержку : @Пример.\n Приятного использования!", false, 0, Generalkeyboard);
             }
 
         });
@@ -250,11 +285,12 @@ int main()
         {
             if (query->data == u8"На главную")
             {
+                UpdateStatusInputUsernameMinus(query->message->chat->username);
                 if (AdminOrNo(query->message->chat->username)) {
-                    bot.getApi().sendMessage(query->message->chat->id, u8"Добро пожаловать в бота <название бота>, бот умеет:\n - Показывать время\n - генерировать шутки на различные темы\n - давать односложный ответ на вопрос\n - генерировать пароли различной длинны\n Бот предназначен для ежедневного использования, по всем вопросам писать в поддержку : @Пример.\n Приятного использования!", false, 0, GeneralAdminkeyboard);
+                    bot.getApi().sendMessage(query->message->chat->id, u8"Добро пожаловать в бота <название бота>, бот умеет:\n - Показывать время\n - Генерировать шутки на различные темы\n - Давать односложный ответ на вопрос\n - Генерировать пароли различной длинны\n Бот предназначен для ежедневного использования, по всем вопросам писать в поддержку : @Пример.\n Приятного использования!", false, 0, GeneralAdminkeyboard);
                 }
                 else {
-                    bot.getApi().sendMessage(query->message->chat->id, u8"Добро пожаловать в бота <название бота>, бот умеет:\n - Показывать время\n - генерировать шутки на различные темы\n - давать односложный ответ на вопрос\n - генерировать пароли различной длинны\n Бот предназначен для ежедневного использования, по всем вопросам писать в поддержку : @Пример.\n Приятного использования!", false, 0, Generalkeyboard);
+                    bot.getApi().sendMessage(query->message->chat->id, u8"Добро пожаловать в бота <название бота>, бот умеет:\n - Показывать время\n - Генерировать шутки на различные темы\n - Давать односложный ответ на вопрос\n - Генерировать пароли различной длинны\n Бот предназначен для ежедневного использования, по всем вопросам писать в поддержку : @Пример.\n Приятного использования!", false, 0, Generalkeyboard);
                 }
 
             }
@@ -304,7 +340,7 @@ int main()
                     bot.getApi().sendMessage(query->message->chat->id, u8"🔴 Функция 'Генеррация шутки' не доступна и кнопка не активна.");
                 }
 
-                if (StatusAnswer)
+                if (StatusAnswer())
                 {
                     bot.getApi().sendMessage(query->message->chat->id, u8"🟢 Функция 'Ответ на вопрос' доступна и кнопка активна.");
                 }
@@ -316,13 +352,98 @@ int main()
             }
         });
 
-    bot.getEvents().onCallbackQuery([&bot, &AdminMenuKeyboard, &outKey, &ResetBtnsKeyboard, &OfFunctKeyboard](CallbackQuery::Ptr query)
+    bot.getEvents().onCallbackQuery([&bot, &AdminMenuKeyboard, &outKey, &ResetBtnsKeyboard, &backKeyboard](CallbackQuery::Ptr query)
         {
-            if (query->data == u8"Деактивация")
+            if (query->data == u8"Выбор")
             {
-                bot.getApi().sendMessage(query->message->chat->id, u8"Какие кнопки необходимо отключить?", false, 0, OfFunctKeyboard);
+                bot.getApi().sendMessage(query->message->chat->id, u8"На данный момент: ");
+                if (StatusTime())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"🟢 Функция 'время' доступна и кнопка активна.");
+                }
+                else
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"🔴 Функция 'время' не доступна и кнопка не активна.");
+                }
+
+                if (StatusPassword())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"🟢 Функция 'Пароль' доступна и кнопка активна.");
+                }
+                else
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"🔴 Функция 'Пароль' не доступна и кнопка не активна.");
+                }
+
+                if (StatusJoke())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"🟢 Функция 'Генерация шутки' доступна и кнопка активна.");
+                }
+                else
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"🔴 Функция 'Генеррация шутки' не доступна и кнопка не активна.");
+                }
+
+                if (StatusAnswer())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"🟢 Функция 'Ответ на вопрос' доступна и кнопка активна.");
+                }
+                else
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"🔴 Функция 'Ответ на вопрос' не доступна и кнопка не активна.");
+                }
+                bot.getApi().sendMessage(query->message->chat->id, u8"Выберите, что необходимо сделать с кнопками? ", false, 0, ResetBtnsKeyboard);
             }
         });
+
+
+    bot.getEvents().onCallbackQuery([&bot, &AdminMenuKeyboard, &outKey, &ResetBtnsKeyboard, &UpFunctKeyboard](CallbackQuery::Ptr query)
+        {
+            if (query->data == u8"Активация")
+            {
+                bot.getApi().sendMessage(query->message->chat->id, u8"Какие кнопки необходимо активировать?", false, 0, UpFunctKeyboard);
+            }
+        });
+
+    bot.getEvents().onCallbackQuery([&bot, &AdminMenuKeyboard, &outKey, &ResetBtnsKeyboard, &UpFunctKeyboard, &backKeyboard](CallbackQuery::Ptr query)
+        {
+            if (query->data == u8"АктВремя")
+            {
+                UpdateStatusTimePlus();
+                if (StatusTime())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"кнопка время успешно активирована", false, 0, backKeyboard);
+                }
+            }
+
+            if (query->data == u8"АктПароль")
+            {
+                UpdateStatusPasswordPlus();
+                if (StatusPassword())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"кнопка Пароль успешно активирована", false, 0, backKeyboard);
+                }
+            }
+
+            if (query->data == u8"АктШутка")
+            {
+                UpdateStatusJokePlus();
+                if (StatusJoke())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"кнопка Шутка успешно активирована", false, 0, backKeyboard);
+                }
+            }
+
+            if (query->data == u8"АктВопрос")
+            {
+                UpdateStatusAnswerPlus();
+                if (StatusAnswer())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"кнопка Вопрос успешно активирована", false, 0, backKeyboard);
+                }
+            }
+        });
+
 
     // доделать деактивацию и активацию кнопок (с проверкой)
     bot.getEvents().onCallbackQuery([&bot, &AdminMenuKeyboard, &outKey, &ResetBtnsKeyboard, &OfFunctKeyboard](CallbackQuery::Ptr query)
@@ -333,15 +454,63 @@ int main()
             }
         });
 
+    bot.getEvents().onCallbackQuery([&bot, &AdminMenuKeyboard, &outKey, &ResetBtnsKeyboard, &OfFunctKeyboard, &backKeyboard](CallbackQuery::Ptr query)
+        {
+            if (query->data == u8"ДеВремя")
+            {
+                UpdateStatusTime();
+                if (!StatusTime())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"кнопка время успешно отключена", false, 0, backKeyboard);
+                }
+            }
+
+            if (query->data == u8"ДеПароль")
+            {
+                UpdateStatusPassword();
+                if (!StatusPassword())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"кнопка Пароль успешно отключена", false, 0, backKeyboard);
+                }
+            }
+
+            if (query->data == u8"ДеШутка")
+            {
+                UpdateStatusJoke();
+                if (!StatusJoke())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"кнопка Шутка успешно отключена", false, 0, backKeyboard);
+                }
+            }
+
+            if (query->data == u8"ДеВопрос")
+            {
+                UpdateStatusAnswer();
+                if (!StatusAnswer())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"кнопка Вопрос успешно отключена", false, 0, backKeyboard);
+                }
+            }
+        });
 
 
-    bot.getEvents().onCallbackQuery([&bot, &keyboardToPassword, &Generalkeyboard](CallbackQuery::Ptr query)
+
+
+
+    bot.getEvents().onCallbackQuery([&bot, &keyboardToPassword, &Generalkeyboard, &outKey](CallbackQuery::Ptr query)
         {
             if (query->data == u8"Получить пароль")
             {
+                if (StatusPassword())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"Сколько символов должен содержать пароль?\t", false, 0, keyboardToPassword);
+                    cout << "(Password) function was used be the user: " << query->message->chat->username << endl;
+                }
+                else
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"Поростите, данная функция недоступна для работы в данное время :(", false, 0, outKey);
+                }
 
-                bot.getApi().sendMessage(query->message->chat->id, u8"Сколько символов должен содержать пароль?\t", false, 0, keyboardToPassword);
-                cout << "(Password) function was used be the user: " << query->message->chat->username << endl;
             }
         });
 
@@ -381,6 +550,30 @@ int main()
 
 
 
+    // поиск пользователя
+    bot.getEvents().onCallbackQuery([&bot, &outKey, &YesKey, &AdminMenuKeyboard](CallbackQuery::Ptr query)
+        {
+            if (query->data == u8"Пользователь")
+            {
+                bot.getApi().sendMessage(query->message->chat->id, u8"Для того что бы получить информацию о пользователе, пропишите команду /SS введите имя из списка, показанного ниже  (!🔴 ВНИМАНИЕ: ДАННУЮ КОМАНДУ СЛЕДУЕТ ПРОПИСЫВАТЬ ЛИШЬ 1 РАЗ, ПРИ ДАЛЬНЕЙШЕМ ИСПОЛЬЗОВАНИИ СЛЕДУЕТ СРАЗУ ЗАДАВАТЬ НАПИСАТЬ ИМЯ ПОЛЬЗОВАТЕЛЯ 🔴!) : " + SearchUsersToAdmin());
+                UpdateStatusInputUsernamePlus(query->message->chat->username);
+                bot.getEvents().onCommand("SS", [&bot, &outKey](Message::Ptr message)
+                    {
+                      
+                        if (StatusInputUsername(message->chat->username))
+                        {
+                            bot.getApi().sendMessage(message->chat->id, u8"Я вас слушаю");
+                            bot.getEvents().onNonCommandMessage([&bot, &outKey](Message::Ptr message)
+                                {
+                                    bot.getApi().sendMessage(message->chat->id, u8"Информация о пользователе: ");
+                                    bot.getApi().sendMessage(message->chat->id, InformationUserForBD(message->text), false, 0, outKey);
+                                    cout << endl << " Admin User " << message->chat->username << " Searched user" << endl;
+                                });
+                        }
+                    });
+            }
+        });
+
 
 
 
@@ -405,8 +598,16 @@ int main()
         {
             if (query->data == u8"Получить шутку")
             {
-                bot.getApi().sendMessage(query->message->chat->id, u8"При нажатии на кнопку (Следующая шутка), вы увидете шутку на случайную тему.\t", false, 0, joKey);
-                cout << "(joke) function was used be the user: " << query->message->chat->username << endl;
+                if (StatusJoke())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"При нажатии на кнопку (Следующая шутка), вы увидете шутку на случайную тему.\t", false, 0, joKey);
+                    cout << "(joke) function was used be the user: " << query->message->chat->username << endl;
+                }
+                else
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"Поростите, данная функция недоступна для работы в данное время :(", false, 0, outKey);
+                }
+
             }
         });
 
@@ -424,35 +625,57 @@ int main()
         {
             if (query->data == u8"Получить ответ на вопрос")
             {
-                bot.getApi().sendMessage(query->message->chat->id, u8"При нажатии на кнопку вы сможете ввести вопрос, подрузумивающий однозначный ответ (Да/Нет), и с малой вероятностью (может быть), будьте внимательны, кнопку следует нажимать только единожды, при последующем нажатии работа будет неверной.\t", false, 0, YesKey);
-                cout << "(question) function was used be the user: " << query->message->chat->username << endl;
+                if (StatusAnswer())
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"При нажатии на кнопку вы сможете ввести вопрос, подрузумивающий однозначный ответ (Да/Нет), и с малой вероятностью (может быть), будьте внимательны, кнопку следует нажимать только единожды, при последующем нажатии работа будет неверной.\t", false, 0, YesKey);
+                    cout << "(question) function was used be the user: " << query->message->chat->username << endl;
+                }
+                else
+                {
+                    bot.getApi().sendMessage(query->message->chat->id, u8"Поростите, данная функция недоступна для работы в данное время :(", false, 0, outKey);
+                }
+
             }
         });
+
+
 
     bot.getEvents().onCallbackQuery([&bot, &outKey, &YesKey](CallbackQuery::Ptr query)
         {
             if (query->data == "GO")
             {
-                bot.getApi().sendMessage(query->message->chat->id, u8"Введите вопрос, обязательно используйте знак (?) в конце:");
-                bot.getEvents().onAnyMessage([&bot, &outKey](Message::Ptr message)
+                UpdateStatusInputUsernamePlus(query->message->chat->username);
+                bot.getApi().sendMessage(query->message->chat->id, u8"Введите вопрос, перед заданием вопроса пропишите команду: /leesten (!🔴 ВНИМАНИЕ: ДАННУЮ КОМАНДУ СЛЕДУЕТ ПРОПИСЫВАТЬ ЛИШЬ 1 РАЗ, ПРИ ДАЛЬНЕЙШЕМ ИСПОЛЬЗОВАНИИ СЛЕДУЕТ СРАЗУ ЗАДАВАТЬ ВОПРОС 🔴!), также обязательно используйте знак (?) в конце:");
+                bot.getEvents().onCommand("leesten", [&bot, &outKey](Message::Ptr message)
                     {
-                        if (TakeQuestion(message->text))
+                        if (StatusInputUsername(message->chat->username))
                         {
-                            bot.getApi().sendMessage(message->chat->id, u8"Полученный ответ:\t" + YesNoMaybe(), false, 0, outKey);
-                            cout << "user " << message->chat->username << " Get answer" << endl;
+                            bot.getApi().sendMessage(message->chat->id, u8"Я вас слушаю");
+                            bot.getEvents().onAnyMessage([&bot, &outKey](Message::Ptr message)
+                                {
+                                    if (TakeQuestion(message->text))
+                                    {
+                                        bot.getApi().sendMessage(message->chat->id, u8"Полученный ответ:\t" + YesNoMaybe(), false, 0, outKey);
+                                        cout << "user " << message->chat->username << " Get answer" << endl;
+                                    }
+                                });
                         }
+                       
                     });
+                
 
 
             }
         });
 
 
+ 
+
     bot.getEvents().onAnyMessage([&bot](TgBot::Message::Ptr message)
         {
             for (const auto& command : bot_commands)
             {
-                if ("/" + command == message->text || TakeQuestion(message->text))
+                if ("/" + command == message->text || TakeQuestion(message->text) || SearchInfToUserBool(message->text))
                 {
                     return;
                 }
