@@ -586,7 +586,7 @@ int main()
     // рассылка заданного сообщения (Не работает)
     bot.getEvents().onCallbackQuery([&bot, &outKey, &YesKey, &AdminMenuKeyboard, &MessageBTNSKeyboard](CallbackQuery::Ptr query)
         {
-            if (query->data == u8"")
+            if (query->data == u8"Рассылка")
             {
                 bot.getApi().sendMessage(query->message->chat->id, u8"Для того что бы получить информацию о пользователе, пропишите команду /message и введите текст рассылки  (!🔴 ВНИМАНИЕ: ДАННУЮ КОМАНДУ СЛЕДУЕТ ПРОПИСЫВАТЬ ЛИШЬ 1 РАЗ, ПРИ ДАЛЬНЕЙШЕМ ИСПОЛЬЗОВАНИИ СЛЕДУЕТ СРАЗУ НАПИСАТЬ СООБЩЕНИЕ 🔴!) : " + SearchUsersToAdmin());
                 bot.getEvents().onCommand("message", [&bot, &MessageBTNSKeyboard](Message::Ptr message)
@@ -595,8 +595,9 @@ int main()
                             bot.getApi().sendMessage(message->chat->id, u8"Я жду сообщение");
                             bot.getEvents().onNonCommandMessage([&bot, &MessageBTNSKeyboard](Message::Ptr message)
                                 {
-                                        bot.getApi().sendMessage(message->chat->id, u8"Вы ввели сообщение:\n" + message->text + u8"\n если необходимо исправить - отправьте исправленное сообщение, если исправлений не требуется - нажмите кнопку под сообщением", false, 0, MessageBTNSKeyboard);
+                                        bot.getApi().sendMessage(message->chat->id, message->text, false, 0, MessageBTNSKeyboard);
                                         cout << endl << " Admin User " << message->chat->username << "  send message for all users " << endl;
+                                        return 0;
                                 });
                     });
             }
