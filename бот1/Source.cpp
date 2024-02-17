@@ -568,7 +568,7 @@ int main()
                 UpdateStatusInputUsernamePlus(query->message->chat->username);
                 bot.getEvents().onCommand("SS", [&bot, &outKey](Message::Ptr message)
                     {
-                      
+
                         if (StatusInputUsername(message->chat->username))
                         {
                             bot.getApi().sendMessage(message->chat->id, u8"Я вас слушаю");
@@ -586,20 +586,28 @@ int main()
     // рассылка заданного сообщения (Не работает)
     bot.getEvents().onCallbackQuery([&bot, &outKey, &YesKey, &AdminMenuKeyboard, &MessageBTNSKeyboard](CallbackQuery::Ptr query)
         {
+
             if (query->data == u8"Рассылка")
             {
-                bot.getApi().sendMessage(query->message->chat->id, u8"Для того что бы получить информацию о пользователе, пропишите команду /message и введите текст рассылки  (!🔴 ВНИМАНИЕ: ДАННУЮ КОМАНДУ СЛЕДУЕТ ПРОПИСЫВАТЬ ЛИШЬ 1 РАЗ, ПРИ ДАЛЬНЕЙШЕМ ИСПОЛЬЗОВАНИИ СЛЕДУЕТ СРАЗУ НАПИСАТЬ СООБЩЕНИЕ 🔴!) : " + SearchUsersToAdmin());
-                bot.getEvents().onCommand("message", [&bot, &MessageBTNSKeyboard](Message::Ptr message)
+                bot.getApi().sendMessage(query->message->chat->id, u8"Для того что бы получить информацию о пользователе, пропишите команду /message и введите текст рассылки : " + SearchUsersToAdmin());
+                bot.getEvents().onAnyMessage([&bot, &MessageBTNSKeyboard](Message::Ptr message) {
+                    if (StringTools::startsWith(message->text, "/message")) // 8 cимволов
                     {
-
-                            bot.getApi().sendMessage(message->chat->id, u8"Я жду сообщение");
-                            bot.getEvents().onNonCommandMessage([&bot, &MessageBTNSKeyboard](Message::Ptr message)
-                                {
-                                        bot.getApi().sendMessage(message->chat->id, message->text, false, 0, MessageBTNSKeyboard);
-                                        cout << endl << " Admin User " << message->chat->username << "  send message for all users " << endl;
-                                        return 0;
-                                });
+                        bot.getApi().sendMessage(message->chat->id, u8"Подтвердите отправку сообщения:\n" + (message->text).erase(0, 8), false, 0, MessageBTNSKeyboard); // 33 символа
+                        cout << endl << " Admin User " << message->chat->username << "  send message for all users " << endl;
+                    }
+                    //bot.getEvents().onCommand("message", [&bot, &MessageBTNSKeyboard](Message::Ptr message)
+                    //    {
+                    //            bot.getApi().sendMessage(message->chat->id, u8"Я жду сообщение");
+                    //            bot.getEvents().onNonCommandMessage([&bot, &MessageBTNSKeyboard](Message::Ptr message)
+                    //                {
+                    //                        bot.getApi().sendMessage(message->chat->id, message->text, false, 0, MessageBTNSKeyboard);
+                    //                        cout << endl << " Admin User " << message->chat->username << "  send message for all users " << endl;
+                    //                        return 0;
+                    //                });
+                    //    });
                     });
+
             }
         });
 
@@ -610,7 +618,7 @@ int main()
             {
                 try {
                     for (const auto& userID : GoMessegeToUsers()) {
-                        bot.getApi().sendMessage(userID, MessageToAllUsers(query->message->text));
+                        bot.getApi().sendMessage(userID, MessageToAllUsers((query->message->text).erase(0, 46)));
                     }
                 }
                 catch (const TgBot::TgException& ex) {
@@ -704,16 +712,16 @@ int main()
                                     }
                                 });
                         }
-                       
+
                     });
-                
+
 
 
             }
         });
 
 
- 
+
 
     bot.getEvents().onAnyMessage([&bot](TgBot::Message::Ptr message)
         {
